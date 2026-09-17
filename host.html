@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host - Relay</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>Host</h1>
+
+    <p>Your connection code:</p>
+
+    <div id="code" class="code">Connecting...</div>
+
+    <p id="status">Connecting to relay...</p>
+
+    <button onclick="location.href='index.html'">Back</button>
+</div>
+
+<script>
+const RELAY_URL = "wss://YOUR-CLOUDFLARE-WORKER.workers.dev";
+
+let ws;
+
+function connect() {
+    ws = new WebSocket(RELAY_URL);
+
+    ws.onopen = () => {
+        document.getElementById("status").textContent =
+            "Connected. Creating room...";
+
+        ws.send(JSON.stringify({
+            type: "create"
+        }));
+    };
+
+    ws.onmessage = event => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "code") {
+            document.getElementById("code").textContent = data.code;
+            document.getElementById("status").textContent =
+                "Give this code to the other device.";
+        }
+
+        if (data.type === "client-joined") {
+            document.getElementById("status").textContent =
+                "Device connected!";
+        }
+    };
+
+    ws.onerror = () => {
+        document.getElementById("status").textContent =
+            "Relay connection failed.";
+    };
+
+    ws.onclose = () => {
+        document.getElementById("status").textContent =
+            "Relay disconnected.";
+    };
+}
+
+connect();
+</script>
+
+</body>
+</html>
