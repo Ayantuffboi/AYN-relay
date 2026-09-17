@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join - Relay</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>Join</h1>
+
+    <input
+        id="codeInput"
+        type="text"
+        maxlength="8"
+        minlength="8"
+        placeholder="Enter 8-character code"
+        autocomplete="off"
+    >
+
+    <button id="joinButton">Join</button>
+
+    <p id="status"></p>
+</div>
+
+<script>
+const RELAY_URL = "wss://YOUR-CLOUDFLARE-WORKER.workers.dev";
+
+const input = document.getElementById("codeInput");
+const button = document.getElementById("joinButton");
+const status = document.getElementById("status");
+
+button.onclick = () => {
+    /*
+     * Accept ANY characters.
+     * No alphabet filtering.
+     * Only requirement is exactly 8 characters.
+     */
+    const code = input.value.trim();
+
+    if (code.length !== 8) {
+        status.textContent = "Code must be exactly 8 characters.";
+        return;
+    }
+
+    status.textContent = "Connecting...";
+
+    const ws = new WebSocket(RELAY_URL);
+
+    ws.onopen = () => {
+        ws.send(JSON.stringify({
+            type: "join",
+            code: code
+        }));
+
+        status.textContent = "Joining room...";
+    };
+
+    ws.onmessage = event => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "joined") {
+            status.textContent = "Connected!";
+        }
+
+        if (data.type === "signal") {
+            console.log("Signal received:", data.data);
+        }
+
+        if (data.type === "error") {
+            status.textContent = data.message;
+        }
+    };
+
+    ws.onerror = () => {
+        status.textContent = "Connection failed.";
+    };
+
+    ws.onclose = () => {
+        console.log("Relay connection closed.");
+    };
+};
+</script>
+
+</body>
+</html>
